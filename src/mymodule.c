@@ -78,7 +78,7 @@ static ssize_t mymodule_test_store(struct device *dev, struct device_attribute *
     {
       complete(&mymod.complete);
     }
-    printk("Sent Completion");
+    printk("Sent Completion\n");
   }
 
   return retval;
@@ -156,7 +156,7 @@ static int __init mymodule_init(void)
   printk("Registering Driver\n");
   if ((retval = alloc_chrdev_region(&devno, 0, NUM_MINORS, MODULE_NAME)) != 0)
   {
-    printk("Failed to create chrdev region");
+    printk("Failed to create chrdev region\n");
     goto init_fail;
   }
   mymod.cls = class_create(THIS_MODULE, CLASS_NAME);
@@ -204,8 +204,6 @@ init_fail:
 
 static void __exit mymodule_exit(void)
 {
-  //int major = 0;
-
   printk("Cleanup Module\n");
 
   printk("Check if we need to complete anything\n");
@@ -219,9 +217,9 @@ static void __exit mymodule_exit(void)
   cdev_del(&mymod.cdv);
   printk("Give back all the numbers we requested\n");
   unregister_chrdev_region(devno, NUM_MINORS);
-  printk("Remove the class driver");
+  printk("Remove the class driver\n");
   device_destroy(mymod.cls, MKDEV(MAJOR(devno), 0));
-  printk("Release the class");
+  printk("Release the class\n");
   class_unregister(mymod.cls);
   class_destroy(mymod.cls);
   printk("Finished Cleanup Module, Exiting\n");

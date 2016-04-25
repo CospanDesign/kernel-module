@@ -102,6 +102,7 @@ struct file_operations mymodule_fops = {
 static int __init mymodule_init(void)
 {
   int retval = SUCCESS;
+  int index = 0;
 
   //Request a set of character device numbers
   printk("Registering Driver\n");
@@ -118,7 +119,7 @@ static int __init mymodule_init(void)
     goto probe_class_fail;
   }
 
-  mymod.dev = device_create(mymod.cls, NULL, MKDEV(MAJOR(devno), 0), NULL, MODULE_NAME);
+  mymod.dev = device_create(mymod.cls, NULL, MKDEV(MAJOR(devno), index), NULL, MODULE_NAME "%d", index);
   if (IS_ERR(mymod.dev))
   {
     retval = PTR_ERR(mymod.dev);

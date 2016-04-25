@@ -26,6 +26,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/device.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
 #include <linux/sysfs.h>
@@ -33,21 +34,30 @@
 #include <asm/uaccess.h>   /* copy_to_user */
 
 
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 MODULE_AUTHOR("author");
-MODULE_DESCRIPTION("Nysa PCIE Interface");
+MODULE_DESCRIPTION("module demo");
 
 //-----------------------------------------------------------------------------
 // Parameters
 //-----------------------------------------------------------------------------
 
 #define MODULE_NAME "mymodule"
+#define CLASS_NAME "modcls"
 #define NUM_MINORS 1
 
 #define SUCCESS 0
 
 static dev_t devno;
-struct cdev cdv;
+
+typedef struct {
+  struct cdev cdv;
+  struct class *cls;
+  struct device *dev;
+} mymodule_t;
+
+
+mymodule_t mymod;
 
 //-----------------------------------------------------------------------------
 // File Operations
@@ -100,20 +110,38 @@ static int __init mymodule_init(void)
     printk("Failed to create chrdev region");
     goto init_fail;
   }
+  mymod.cls = class_create(THIS_MODULE, CLASS_NAME);
+  if (IS_ERR(mymod.cls))
+  {
+    retval = PTR_ERR(mymod.cls);
+    printk("Failed to create module class\n");
+    goto probe_class_fail;
+  }
 
-  //Initialize each of the possible character devices  
-  cdev_init(&cdv, &mymodule_fops);
-  if ((retval = cdev_add(&cdv, devno, 1)) != 0){
+  mymod.dev = device_create(mymod.cls, NULL, MKDEV(MAJOR(devno), 0), NULL, MODULE_NAME);
+  if (IS_ERR(mymod.dev))
+  {
+    retval = PTR_ERR(mymod.dev);
+    printk("Failed to create module class device\n");
+    goto probe_device_class_fail;
+  }
+
+  //Initialize each of the possible character devices
+  cdev_init(&mymod.cdv, &mymodule_fops);
+  if ((retval = cdev_add(&mymod.cdv, devno, 1)) != 0){
     printk("Error %d while trying to add cdev\n", retval);
-    goto probe_destroy_chrdev;
+    goto probe_cdev_init_fail;
   }
 
   printk("Driver Initialized!\n");
   return SUCCESS;
 
 //Handle Fail
-
-probe_destroy_chrdev:
+probe_cdev_init_fail:
+  device_destroy(mymod.cls, MKDEV(MAJOR(devno), 0));
+probe_device_class_fail:
+  class_destroy(mymod.cls);
+probe_class_fail:
   unregister_chrdev_region(devno, 1);
 init_fail:
   return retval;
@@ -126,9 +154,14 @@ static void __exit mymodule_exit(void)
   printk("Cleanup Module\n");
 
   printk("Unregistering Character Driver\n");
-  cdev_del(&cdv);
+  cdev_del(&mymod.cdv);
   printk("Give back all the numbers we requested\n");
   unregister_chrdev_region(devno, NUM_MINORS);
+  printk("Remove the class driver");
+  device_destroy(mymod.cls, MKDEV(MAJOR(devno), 0));
+  printk("Release the class");
+  class_unregister(mymod.cls);
+  class_destroy(mymod.cls);
   printk("Finished Cleanup Module, Exiting\n");
   return;
 }

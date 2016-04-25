@@ -1,26 +1,29 @@
-BIN=mymodule
-NODE=mymodule
-KDIR=/lib/modules/$(shell uname -r)/build
+
 PWD=$(shell pwd)
+MODULEDIR := $(PWD)/src
+RULES_FILE=61-mymodule.rules
 
-obj-m := ${BIN}.o
+all: MODULE
 
-all:
-	make -C $(KDIR) M=$(PWD) modules
+test:
+	@printf "Rules: %s\n" $(RULES)
+
+MODULE:
+	make -C $(MODULEDIR)
+
+instrules:
+	sudo cp rules/${RULES_FILE} /etc/udev/rules.d/
+
+install: instrules
+	@printf "Installing Driver"
+	make -C $(MODULEDIR) install
+
+rmrules:
+	sudo rm /etc/udev/rules.d/${RULES_FILE}
+
+remove: rmrules
+	make -C $(MODULEDIR) remove
 
 clean:
-	make -C $(KDIR) M=$(PWD) clean
+	make -C $(MODULEDIR) clean
 
-install:
-	sudo insmod ./${BIN}.ko
-	sudo lsmod | grep '${BIN}'
-	@echo "Install the file node"
-	mknod /dev/${NODE} c 240 1
-	chown root /dev/${NODE}
-	chmod 0666 /dev/${NODE}
-	chgrp plugdev /dev/${NODE}
-	ls -al /dev/${NODE}
-
-remove:
-	sudo rmmod xpcie
-	rm -rf /dev/${NODE}

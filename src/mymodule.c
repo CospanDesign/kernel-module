@@ -32,6 +32,7 @@
 #include <linux/sysfs.h>
 #include <linux/cdev.h>
 #include <asm/uaccess.h>   /* copy_to_user */
+#include <linux/completion.h>
 
 
 MODULE_LICENSE("GPL");
@@ -54,6 +55,7 @@ typedef struct {
   struct cdev cdv;
   struct class *cls;
   struct device *dev;
+  struct completion complete;
 } mymodule_t;
 
 mymodule_t mymod;
@@ -70,7 +72,14 @@ static ssize_t mymodule_test_store(struct device *dev, struct device_attribute *
     retval = strlen(buf);
   }
   if (value)
+  {
     printk("Value is: %d\n", value);
+    if (!completion_done(&mymod.complete))
+    {
+      complete(&mymod.complete);
+    }
+    printk("Sent Completion");
+  }
 
   return retval;
 }
@@ -115,6 +124,14 @@ ssize_t mymodule_write(struct file *filp, const char *buf, size_t count, loff_t 
 ssize_t mymodule_read(struct file *filp, char * buf, size_t count, loff_t *f_pos)
 {
   printk("Read!\n");
+  if (completion_done(&mymod.complete))
+  {
+    reinit_completion(&mymod.complete);
+  }
+
+  printk("Wait for Completion\n");
+  wait_for_completion_interruptible(&mymod.complete);
+  printk("After Completion\n");
   return 0;
 }
 
@@ -169,6 +186,7 @@ static int __init mymodule_init(void)
     printk("Error %d while trying to add cdev\n", retval);
     goto probe_cdev_init_fail;
   }
+  init_completion(&mymod.complete);
 
   printk("Driver Initialized!\n");
   return SUCCESS;
@@ -189,6 +207,13 @@ static void __exit mymodule_exit(void)
   //int major = 0;
 
   printk("Cleanup Module\n");
+
+  printk("Check if we need to complete anything\n");
+  if (!completion_done(&mymod.complete))
+  {
+    printk("Send a completion!\n");
+    complete(&mymod.complete);
+  }
 
   printk("Unregistering Character Driver\n");
   cdev_del(&mymod.cdv);

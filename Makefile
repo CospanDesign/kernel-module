@@ -1,12 +1,10 @@
 
 PWD=$(shell pwd)
 MODULEDIR := $(PWD)/src
+USERDIR := $(PWD)/userland
 RULES_FILE=61-mymodule.rules
 
-all: MODULE
-
-test:
-	@printf "Rules: %s\n" $(RULES)
+all: user MODULE
 
 MODULE:
 	make -C $(MODULEDIR)
@@ -26,4 +24,7 @@ remove: rmrules
 
 clean:
 	make -C $(MODULEDIR) clean
+
+user:
+	make -C $(USERDIR)
 

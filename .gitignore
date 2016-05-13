@@ -1,3 +1,16 @@
+#Kbuild files
+*.swp
+*.cmd
+.tmp_versions/
+Module.symvers
+modules.order
+*.mod.c
+
+#editor backup files
+*~
+
+
+
 # Object files
 *.o
 *.ko

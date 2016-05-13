@@ -1,0 +1,3 @@
+# Permissions for the mymodule
+
+KERNEL=="mymodule*[0-9]", OWNER="root", GROUP="plugdev", MODE="660"

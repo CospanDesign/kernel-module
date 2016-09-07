@@ -59,38 +59,6 @@ typedef struct {
 mymodule_t mymod;
 
 //-----------------------------------------------------------------------------
-// Sysfs Interface
-//-----------------------------------------------------------------------------
-static ssize_t mymodule_test_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-{
-  int retval = 0;
-  int value = 0;
-  if (sscanf(buf, "%d", &value) == 1)
-  {
-    retval = strlen(buf);
-  }
-  if (value)
-    printk("Value is: %d\n", value);
-
-  return retval;
-}
-static ssize_t mymodule_test_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-  return snprintf(buf, PAGE_SIZE, "hello!\n");
-}
-
-static DEVICE_ATTR_RW(mymodule_test);
-
-static struct attribute * mymodule_sysfs_attrs [] =
-{
- &dev_attr_mymodule_test.attr,
- NULL,
-};
-
-ATTRIBUTE_GROUPS(mymodule_sysfs);
-
-
-//-----------------------------------------------------------------------------
 // File Operations
 //-----------------------------------------------------------------------------
 
@@ -133,7 +101,6 @@ struct file_operations mymodule_fops = {
 static int __init mymodule_init(void)
 {
   int retval = SUCCESS;
-  int index = 0;
 
   //Request a set of character device numbers
   printk("Registering Driver\n");
@@ -150,12 +117,6 @@ static int __init mymodule_init(void)
     goto probe_class_fail;
   }
 
-  mymod.dev = device_create_with_groups(mymod.cls,
-                                        NULL,
-                                        MKDEV(MAJOR(devno), index),
-                                        NULL,
-                                        mymodule_sysfs_groups,
-                                        MODULE_NAME "%d", index);
   if (IS_ERR(mymod.dev))
   {
     retval = PTR_ERR(mymod.dev);
